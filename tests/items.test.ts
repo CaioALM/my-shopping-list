@@ -3,15 +3,16 @@ import supertest from 'supertest';
 import app from '../src/app';
 import { prisma } from '../src/database'
 import itemsFactory from './factories/itemsFactory'
+import numberFactory from './factories/numberFactory';
 
-beforeEach(() => {
+beforeEach( async() => {
   await prisma.$executeRaw`TRUNCATE TABLE "items"`
 })
 
 describe('Testa POST /items ', () => {
   it('Deve retornar 201, se cadastrado um item no formato correto', async() => {
       const item = await itemsFactory();
-
+      
       const result = await supertest(app).post(`/items`).send(item);
 
       const createdItem = await prisma.items.findUnique({
@@ -44,6 +45,27 @@ describe('Testa GET /items ', () => {
 });
 
 describe('Testa GET /items/:id ', () => {
-  it.todo('Deve retornar status 200 e um objeto igual a o item cadastrado');
-  it.todo('Deve retornar status 404 caso não exista um item com esse id');
+  it('Deve retornar status 200 e um objeto igual a o item cadastrado', async () => {
+    const item = itemsFactory()
+    await supertest(app).post(`/items`).send(item);
+
+    const result = await supertest(app).get(`/items/${item.id}`).send();
+
+    const createdItem = await prisma.items.findUnique({
+        where: {title: item.title }
+      });
+    expect(result.status).toBe(200)
+    expect(result.body).toBe(item)
+  });
+ 
+
+  it('Deve retornar status 404 caso não exista um item com esse id', async () => {
+
+    const number = await numberFactory()
+    
+    const result = await supertest(app).get(`/items/${number.random}`).send();
+
+    expect(result.status).toBe(404)
+
+  });
 });
